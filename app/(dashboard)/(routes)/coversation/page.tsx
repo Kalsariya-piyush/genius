@@ -5,16 +5,23 @@ import { MessageSquare } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { formSchema } from './constants';
 
-import { zodResolver } from '@hookform/resolvers/zod';
-
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { zodResolver } from '@hookform/resolvers/zod';
+import axios from 'axios';
+import { useRouter } from 'next/navigation';
+import { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
+import { useState } from 'react';
 import * as z from 'zod';
 
 type FormValues = z.infer<typeof formSchema>;
 
 const Coversation = () => {
+  const router = useRouter();
+
+  const [messages, setMessages] = useState<ChatCompletionMessageParam[]>([]);
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -25,7 +32,28 @@ const Coversation = () => {
   const isLoading = form.formState.isSubmitting;
 
   const onSubmit = async (values: FormValues) => {
-    console.log('Values', values);
+    try {
+      console.log('Values', values);
+
+      const userMessage: ChatCompletionMessageParam = {
+        role: 'user',
+        content: values.prompt,
+      };
+
+      const newMessages = [...messages, userMessage];
+
+      const response = await axios.post('/api/conversation', {
+        messages: newMessages,
+      });
+
+      setMessages((current) => [...current, userMessage, response?.data]);
+      form.reset();
+    } catch (error) {
+      // TODO: Open pro model
+      console.log(error);
+    } finally {
+      router.refresh();
+    }
   };
 
   return (
@@ -69,6 +97,14 @@ const Coversation = () => {
               </Button>
             </form>
           </Form>
+        </div>
+
+        <div className="space-y-4 mt-4">
+          <div className="flex flex-col-reverse gap-y-4">
+            {messages.map((message) => (
+              <div key={`${message?.content}`}>{`${message?.content}`}</div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
