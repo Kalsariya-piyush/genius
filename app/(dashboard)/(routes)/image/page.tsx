@@ -2,7 +2,7 @@
 
 import { Heading } from '@/components/heading';
 import { useForm } from 'react-hook-form';
-import { amountOptions, formSchema, resolutionOptions } from './constants';
+import { formSchema } from './constants';
 
 import { Empty } from '@/components/empty';
 import { Loader } from '@/components/loader';
@@ -10,13 +10,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardFooter } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { zodResolver } from '@hookform/resolvers/zod';
 import axios from 'axios';
 import { Download, ImageIcon } from 'lucide-react';
@@ -45,13 +38,9 @@ const ImageGenerationPage = () => {
 
   const onSubmit = async (values: FormValues) => {
     try {
-      setImages([]);
       const response = await axios.post('/api/image', values);
 
-      // const urls = response?.data?.map((image: { url: string }) => image.url);
-      // setImages(urls);
-      console.log(response.data.image);
-      setImages([response.data.image]);
+      setImages([...images, response.data.image]);
       form.reset();
     } catch (error) {
       // TODO: Open pro model
@@ -59,6 +48,15 @@ const ImageGenerationPage = () => {
     } finally {
       router.refresh();
     }
+  };
+
+  const downloadImage = (base64Data: string, filename = 'image.png') => {
+    const link = document.createElement('a');
+    link.href = base64Data;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
@@ -81,7 +79,7 @@ const ImageGenerationPage = () => {
               <FormField
                 name="prompt"
                 render={({ field }) => (
-                  <FormItem className="col-span-12 lg:col-span-6">
+                  <FormItem className="col-span-12 lg:col-span-10">
                     <FormControl className="m-0 p-0">
                       <Input
                         className="border-0 outline-none focus-visible:ring-0 focus-visible:ring-transparent"
@@ -94,7 +92,8 @@ const ImageGenerationPage = () => {
                 )}
               />
 
-              <FormField
+              {/* TODO: Need to some research for this task */}
+              {/* <FormField
                 control={form.control}
                 name="amount"
                 render={({ field }) => (
@@ -148,7 +147,7 @@ const ImageGenerationPage = () => {
                     </Select>
                   </FormItem>
                 )}
-              />
+              /> */}
 
               <Button
                 className="col-span-12 w-full lg:col-span-2"
@@ -172,7 +171,7 @@ const ImageGenerationPage = () => {
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mt-8">
-            {images.map((src) => (
+            {images.map((src, index) => (
               <Card key={src} className="rounded-lg overflow-hidden">
                 <div className="relative aspect-square">
                   <Image alt="Image" fill src={src} />
@@ -181,7 +180,9 @@ const ImageGenerationPage = () => {
                   <Button
                     variant="secondary"
                     className="w-full"
-                    onClick={() => window.open(src)}
+                    onClick={() =>
+                      downloadImage(src, `generated-image-${index + 1}.png`)
+                    }
                   >
                     <Download className="h-4 w-4 mr-2" />
                   </Button>
